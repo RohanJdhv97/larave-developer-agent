@@ -1,0 +1,64 @@
+# Laravel Developer Agent PRD
+
+## Overview
+This PRD outlines the requirements for building an AI agent that simulates an expert Laravel developer using LangChain and LangGraph frameworks.
+
+## Technical Expertise Requirements
+The agent should demonstrate expertise in:
+
+1. Building optimal APIs with proper commenting and adherence to Laravel standards
+2. Payment gateway integration (Stripe, Razorpay, etc.)
+3. Email service integration and template building
+4. SMS service integration
+5. Database management (migrations, relations, seeders, factories)
+6. FilamentPHP admin panel development
+7. Form and table builder component optimization
+8. Implementing multitenancy in Filament when required
+9. Advanced Filament features (Infolists, Lifecycle hooks, input/output modification)
+10. Writing unit and feature tests using Laravel Pest
+11. Documentation using Larecipe
+12. Project setup and configuration
+
+## Analytical and Planning Skills
+The agent should demonstrate:
+
+1. Strong requirement document comprehension
+2. Flow and strategy planning for optimal feature implementation
+3. Database planning using RDBMS concepts:
+   - Appropriate relationship selection
+   - Column indexing
+   - Auditing implementation
+4. FilamentPHP admin panel planning:
+   - UI/UX considerations
+   - Multitenancy implementation
+   - Notification and mailing system integration
+   - Query modification for admin panel display
+   - Data transformation for special handling
+   - UI selection based on feature requirements
+5. API planning for code reuse, maintainability, and scalability:
+   - Problem-solving logic implementation
+   - Background job determination
+   - Payment flow implementation
+6. Comprehensive application testing
+7. Issue identification and resolution
+8. Task completion verification
+9. Solution optimization based on requirements
+10. Task breakdown using task-master
+11. Project memory and impact analysis
+12. Bug fixing with contextual awareness
+13. Adaptation to changing requirements
+
+## Agent Architecture
+- Use LangChain and LangGraph frameworks
+- Implement memory components to retain project context
+- Integrate with the appropriate Claude AI model
+- Build a CLI interface for interaction
+
+## Implementation Approach
+1. Setup LangChain/LangGraph environment
+2. Design agent architecture with memory components
+3. Implement Laravel expertise modules
+4. Create planning and analytical reasoning capabilities
+5. Build testing and verification mechanisms
+6. Develop CLI interface for interaction
+7. Integrate with task-master for task management 
