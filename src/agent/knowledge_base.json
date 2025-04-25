@@ -1,0 +1,54 @@
+{
+  "laravel_model_conventions": {
+    "title": "Laravel Model Conventions",
+    "category": "model",
+    "content": "\nLaravel Eloquent models should follow these conventions:\n1. Model names are singular and use PascalCase (e.g., `User`, `BlogPost`)\n2. Table names are plural and snake_case (e.g., `users`, `blog_posts`)\n3. Primary keys are named `id` by default\n4. Models should define fillable or guarded properties\n5. Use soft deletes when appropriate with `use SoftDeletes`\n6. Define relationships using methods: hasOne, hasMany, belongsTo, etc.\n7. Use model events in the boot method for hooks\n8. Use scopes for common queries\n9. Put models in the `App\\Models` namespace\n\nExample:\n```php\n<?php\n\nnamespace App\\Models;\n\nuse Illuminate\\Database\\Eloquent\\Factories\\HasFactory;\nuse Illuminate\\Database\\Eloquent\\Model;\nuse Illuminate\\Database\\Eloquent\\SoftDeletes;\n\nclass Article extends Model\n{\n    use HasFactory, SoftDeletes;\n\n    protected $fillable = [\n        'title', 'content', 'user_id', 'published_at'\n    ];\n\n    protected $casts = [\n        'published_at' => 'datetime',\n    ];\n\n    public function user()\n    {\n        return $this->belongsTo(User::class);\n    }\n\n    public function tags()\n    {\n        return $this->belongsToMany(Tag::class);\n    }\n\n    public function scopePublished($query)\n    {\n        return $query->whereNotNull('published_at');\n    }\n}\n```\n            ",
+    "tags": [
+      "model",
+      "eloquent",
+      "conventions",
+      "relationships"
+    ],
+    "source": "https://laravel.com/docs/10.x/eloquent",
+    "version": "10.x"
+  },
+  "laravel_controller_conventions": {
+    "title": "Laravel Controller Conventions",
+    "category": "controller",
+    "content": "\nLaravel controllers should follow these conventions:\n1. Controllers are named in PascalCase with Controller suffix (e.g., `UserController`)\n2. Use resource controllers for CRUD operations\n3. Follow RESTful naming for methods (index, create, store, show, edit, update, destroy)\n4. Use form requests for validation\n5. Keep controllers thin - move business logic to services\n6. Return responses with appropriate status codes\n7. Use dependency injection for services\n\nExample:\n```php\n<?php\n\nnamespace App\\Http\\Controllers;\n\nuse App\\Http\\Requests\\StoreArticleRequest;\nuse App\\Models\\Article;\nuse App\\Services\\ArticleService;\nuse Illuminate\\Http\\Request;\n\nclass ArticleController extends Controller\n{\n    protected $articleService;\n    \n    public function __construct(ArticleService $articleService)\n    {\n        $this->articleService = $articleService;\n        $this->middleware('auth')->except(['index', 'show']);\n    }\n\n    public function index()\n    {\n        $articles = Article::published()->latest()->paginate(10);\n        return view('articles.index', compact('articles'));\n    }\n\n    public function create()\n    {\n        return view('articles.create');\n    }\n\n    public function store(StoreArticleRequest $request)\n    {\n        $article = $this->articleService->createArticle($request->validated());\n        return redirect()->route('articles.show', $article)\n            ->with('success', 'Article created successfully');\n    }\n\n    public function show(Article $article)\n    {\n        return view('articles.show', compact('article'));\n    }\n\n    public function edit(Article $article)\n    {\n        $this->authorize('update', $article);\n        return view('articles.edit', compact('article'));\n    }\n\n    public function update(StoreArticleRequest $request, Article $article)\n    {\n        $this->authorize('update', $article);\n        $this->articleService->updateArticle($article, $request->validated());\n        return redirect()->route('articles.show', $article)\n            ->with('success', 'Article updated successfully');\n    }\n\n    public function destroy(Article $article)\n    {\n        $this->authorize('delete', $article);\n        $article->delete();\n        return redirect()->route('articles.index')\n            ->with('success', 'Article deleted successfully');\n    }\n}\n```\n            ",
+    "tags": [
+      "controller",
+      "crud",
+      "restful",
+      "conventions"
+    ],
+    "source": "https://laravel.com/docs/10.x/controllers",
+    "version": "10.x"
+  },
+  "laravel_migration_conventions": {
+    "title": "Laravel Migration Conventions",
+    "category": "migration",
+    "content": "\nLaravel migrations should follow these conventions:\n1. Migration filenames are prefixed with timestamp and use snake_case\n2. Table names are plural and snake_case\n3. Include up() and down() methods for migration and rollback\n4. Use appropriate column types and modifiers\n5. Define foreign keys and indexes when needed\n6. Use separate migrations for pivot tables\n7. Keep migrations small and focused\n\nExample:\n```php\n<?php\n\nuse Illuminate\\Database\\Migrations\\Migration;\nuse Illuminate\\Database\\Schema\\Blueprint;\nuse Illuminate\\Support\\Facades\\Schema;\n\nreturn new class extends Migration\n{\n    public function up()\n    {\n        Schema::create('articles', function (Blueprint $table) {\n            $table->id();\n            $table->string('title');\n            $table->text('content');\n            $table->foreignId('user_id')->constrained()->onDelete('cascade');\n            $table->timestamp('published_at')->nullable();\n            $table->timestamps();\n            $table->softDeletes();\n            \n            $table->index('published_at');\n        });\n    }\n\n    public function down()\n    {\n        Schema::dropIfExists('articles');\n    }\n};\n```\n            ",
+    "tags": [
+      "migration",
+      "database",
+      "schema",
+      "conventions"
+    ],
+    "source": "https://laravel.com/docs/10.x/migrations",
+    "version": "10.x"
+  },
+  "filamentphp_field_conventions": {
+    "title": "FilamentPHP Field Conventions",
+    "category": "filament",
+    "content": "\nFilamentPHP form fields should follow these conventions:\n1. Use descriptive labels that match your UI terminology\n2. Group related fields with fieldsets or sections\n3. Apply appropriate validation rules\n4. Use hints for additional context\n5. Configure appropriate field types for data types\n6. Use relationships correctly\n7. Add help text where needed\n\nExample:\n```php\npublic static function form(Form $form): Form\n{\n    return $form\n        ->schema([\n            Forms\\Components\\Section::make('Basic Information')\n                ->schema([\n                    Forms\\Components\\TextInput::make('title')\n                        ->required()\n                        ->maxLength(255)\n                        ->unique(ignoreRecord: true)\n                        ->placeholder('Enter article title')\n                        ->columnSpan(2),\n                        \n                    Forms\\Components\\Select::make('status')\n                        ->options([\n                            'draft' => 'Draft',\n                            'review' => 'Under Review',\n                            'published' => 'Published',\n                        ])\n                        ->default('draft')\n                        ->required(),\n                        \n                    Forms\\Components\\DateTimePicker::make('published_at')\n                        ->label('Publish Date')\n                        ->nullable(),\n                ])\n                ->columns(3),\n                \n            Forms\\Components\\Section::make('Content')\n                ->schema([\n                    Forms\\Components\\RichEditor::make('content')\n                        ->required()\n                        ->columnSpan('full'),\n                        \n                    Forms\\Components\\FileUpload::make('featured_image')\n                        ->image()\n                        ->directory('articles/images')\n                        ->maxSize(2048)\n                        ->nullable(),\n                ]),\n                \n            Forms\\Components\\Section::make('SEO')\n                ->schema([\n                    Forms\\Components\\TextInput::make('meta_title')\n                        ->maxLength(100),\n                        \n                    Forms\\Components\\Textarea::make('meta_description')\n                        ->maxLength(160)\n                        ->rows(2),\n                ])\n                ->collapsible(),\n                \n            Forms\\Components\\BelongsToSelect::make('category_id')\n                ->relationship('category', 'name')\n                ->searchable()\n                ->required(),\n                \n            Forms\\Components\\BelongsToManyMultiSelect::make('tags')\n                ->relationship('tags', 'name')\n                ->preload(),\n        ]);\n}\n```\n            ",
+    "tags": [
+      "filament",
+      "forms",
+      "fields",
+      "conventions"
+    ],
+    "source": "https://filamentphp.com/docs/3.x/forms/fields/getting-started",
+    "version": "3.x"
+  }
+}

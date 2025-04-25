@@ -1,0 +1,21 @@
+{
+  "name": "Laravel Project",
+  "description": null,
+  "laravel_version": "10.x",
+  "php_version": "8.2",
+  "created_at": "2025-04-25T14:58:22.271300",
+  "updated_at": "2025-04-25T14:58:22.271319",
+  "using_filament": false,
+  "using_pest": false,
+  "using_inertia": false,
+  "using_livewire": false,
+  "packages": [],
+  "models": {},
+  "tables": {},
+  "environment_variables": {},
+  "config_values": {},
+  "has_authentication": false,
+  "has_api": false,
+  "api_routes": [],
+  "web_routes": []
+}
