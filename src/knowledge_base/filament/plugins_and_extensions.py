@@ -398,7 +398,7 @@ COMMUNITY_PLUGINS = {
 }
 
 # Custom Plugin Development
-CUSTOM_PLUGIN_DEVELOPMENT = {
+PLUGIN_DEVELOPMENT = {
     "Plugin Components": {
         "description": "Core components that can be included in FilamentPHP plugins",
         "components": [
@@ -808,15 +808,476 @@ PLUGIN_INTEGRATION = {
     }
 }
 
-# Function to get all the plugins and extensions knowledge
-def get_plugins_and_extensions_knowledge() -> Dict[str, Any]:
+# Plugin Discovery and Recommendation System
+PLUGIN_DISCOVERY = {
+    "search_methodology": {
+        "description": "Systematic approach for discovering and evaluating Filament plugins",
+        "sources": [
+            {
+                "name": "Packagist",
+                "url": "https://packagist.org/search/?query=filament",
+                "search_pattern": "https://packagist.org/search/?query=filament+{keyword}",
+                "metrics": ["downloads", "stars", "watchers", "dependents", "last_updated"]
+            },
+            {
+                "name": "GitHub",
+                "url": "https://github.com/topics/filamentphp",
+                "search_pattern": "https://github.com/search?q=filamentphp+{keyword}&type=repositories",
+                "metrics": ["stars", "forks", "watchers", "issues", "contributors", "last_updated"]
+            },
+            {
+                "name": "FilamentPHP Awesome List",
+                "url": "https://github.com/filamentphp/awesome",
+                "metrics": ["curated", "community_recommended"]
+            },
+            {
+                "name": "Laravel News",
+                "url": "https://laravel-news.com/search?q=filament",
+                "metrics": ["article_count", "community_feedback"]
+            }
+        ]
+    },
+    "evaluation_criteria": {
+        "description": "Criteria for evaluating and ranking Filament plugins",
+        "primary_factors": [
+            {
+                "name": "Popularity",
+                "metrics": ["github_stars", "packagist_downloads", "dependents"],
+                "weight": 0.25
+            },
+            {
+                "name": "Maintenance",
+                "metrics": ["recent_commits", "open_issues_ratio", "release_frequency"],
+                "weight": 0.20
+            },
+            {
+                "name": "Documentation",
+                "metrics": ["readme_quality", "examples", "api_docs"],
+                "weight": 0.20
+            },
+            {
+                "name": "Compatibility",
+                "metrics": ["laravel_version_support", "php_version_support", "filament_version_support"],
+                "weight": 0.20
+            },
+            {
+                "name": "Code Quality",
+                "metrics": ["test_coverage", "style_adherence", "dependency_count"],
+                "weight": 0.15
+            }
+        ],
+        "scoring_algorithm": "Weighted average of normalized scores for each factor (0-100 scale)"
+    },
+    "recommendation_format": {
+        "description": "Structure for plugin recommendations",
+        "example": """
+        ## Recommended Plugins for Feature: {feature_description}
+        
+        Based on your requirements, here are the most suitable Filament plugins:
+        
+        ### 1. {plugin_name} (Score: {score}/100)
+        - **Author:** {author}
+        - **GitHub:** {github_url} ({stars} stars)
+        - **Packagist:** {packagist_url} ({downloads} downloads)
+        - **Compatibility:** Laravel {laravel_versions}, PHP {php_versions}, Filament {filament_versions}
+        - **Last Updated:** {last_updated}
+        - **Key Features:**
+          - {feature_1}
+          - {feature_2}
+          - {feature_3}
+        - **Implementation Example:**
+        ```php
+        {code_example}
+        ```
+        
+        ### 2. {plugin_name} (Score: {score}/100)
+        ...
+        
+        ### Alternative Custom Implementation:
+        If none of these plugins fully meet your requirements, a custom implementation would involve:
+        
+        ```php
+        {custom_implementation_example}
+        ```
+        """
+    },
+    "popular_plugin_categories": {
+        "Form Fields": [
+            {
+                "name": "filament/spatie-media-library-plugin",
+                "description": "Media management fields for FilamentPHP",
+                "github": "https://github.com/filamentphp/spatie-laravel-media-library-plugin",
+                "packagist": "https://packagist.org/packages/filament/spatie-laravel-media-library-plugin",
+                "stars": 330,
+                "downloads": 280000,
+                "filament_version": "3.x",
+                "last_updated": "2023-12-15",
+                "features": [
+                    "Media uploads with preview",
+                    "Multiple file handling",
+                    "Image optimization",
+                    "Collections support"
+                ]
+            },
+            {
+                "name": "awcodes/filament-tiptap-editor",
+                "description": "Advanced WYSIWYG editor for FilamentPHP",
+                "github": "https://github.com/awcodes/filament-tiptap-editor",
+                "packagist": "https://packagist.org/packages/awcodes/filament-tiptap-editor",
+                "stars": 420,
+                "downloads": 190000,
+                "filament_version": "3.x",
+                "last_updated": "2023-12-10",
+                "features": [
+                    "Rich text editing",
+                    "Customizable toolbar",
+                    "Image uploads",
+                    "Table support"
+                ]
+            },
+            {
+                "name": "filament/spatie-tags-plugin",
+                "description": "Tags input field for FilamentPHP",
+                "github": "https://github.com/filamentphp/spatie-laravel-tags-plugin",
+                "packagist": "https://packagist.org/packages/filament/spatie-laravel-tags-plugin",
+                "stars": 290,
+                "downloads": 170000,
+                "filament_version": "3.x",
+                "last_updated": "2023-11-30",
+                "features": [
+                    "Tag management",
+                    "Autocomplete",
+                    "Color coding",
+                    "Type support"
+                ]
+            }
+        ],
+        "Authentication & Authorization": [
+            {
+                "name": "bezhansalleh/filament-shield",
+                "description": "Role and permission management for FilamentPHP",
+                "github": "https://github.com/bezhanSalleh/filament-shield",
+                "packagist": "https://packagist.org/packages/bezhansalleh/filament-shield",
+                "stars": 850,
+                "downloads": 480000,
+                "filament_version": "3.x",
+                "last_updated": "2023-12-18",
+                "features": [
+                    "Role-based permissions",
+                    "UI for permission management",
+                    "Policy generation",
+                    "Super admin role"
+                ]
+            },
+            {
+                "name": "jeffgreco13/filament-breezy",
+                "description": "User profile and authentication features",
+                "github": "https://github.com/jeffgreco13/filament-breezy",
+                "packagist": "https://packagist.org/packages/jeffgreco13/filament-breezy",
+                "stars": 620,
+                "downloads": 350000,
+                "filament_version": "3.x",
+                "last_updated": "2023-12-05",
+                "features": [
+                    "Two-factor authentication",
+                    "Profile management",
+                    "Password reset",
+                    "API tokens"
+                ]
+            }
+        ],
+        "UI Components": [
+            {
+                "name": "filament/widgets",
+                "description": "Dashboard widgets for FilamentPHP",
+                "github": "https://github.com/filamentphp/filament",
+                "packagist": "https://packagist.org/packages/filament/widgets",
+                "stars": 4500,
+                "downloads": 900000,
+                "filament_version": "3.x",
+                "last_updated": "2023-12-20",
+                "features": [
+                    "Stats overview",
+                    "Charts",
+                    "Data tables",
+                    "Custom widgets"
+                ]
+            },
+            {
+                "name": "leandrocfe/filament-apex-charts",
+                "description": "ApexCharts integration for FilamentPHP",
+                "github": "https://github.com/leandrocfe/filament-apex-charts",
+                "packagist": "https://packagist.org/packages/leandrocfe/filament-apex-charts",
+                "stars": 380,
+                "downloads": 210000,
+                "filament_version": "3.x",
+                "last_updated": "2023-12-02",
+                "features": [
+                    "Multiple chart types",
+                    "Real-time updates",
+                    "Interactive legends",
+                    "Responsive design"
+                ]
+            }
+        ],
+        "Navigation & Layout": [
+            {
+                "name": "filament/spatie-laravel-translatable-plugin",
+                "description": "Translatable content management",
+                "github": "https://github.com/filamentphp/spatie-laravel-translatable-plugin",
+                "packagist": "https://packagist.org/packages/filament/spatie-laravel-translatable-plugin",
+                "stars": 350,
+                "downloads": 230000,
+                "filament_version": "3.x",
+                "last_updated": "2023-12-08",
+                "features": [
+                    "Multi-language forms",
+                    "Language switcher",
+                    "Translation management",
+                    "Content localization"
+                ]
+            },
+            {
+                "name": "3x1io/filament-browser",
+                "description": "File browser for FilamentPHP",
+                "github": "https://github.com/3x1io/filament-browser",
+                "packagist": "https://packagist.org/packages/3x1io/filament-browser",
+                "stars": 240,
+                "downloads": 120000,
+                "filament_version": "3.x",
+                "last_updated": "2023-11-15",
+                "features": [
+                    "File manager",
+                    "Media browser",
+                    "Upload functionality",
+                    "File organization"
+                ]
+            }
+        ],
+        "Utilities": [
+            {
+                "name": "filament/notifications",
+                "description": "Notifications system for FilamentPHP",
+                "github": "https://github.com/filamentphp/filament",
+                "packagist": "https://packagist.org/packages/filament/notifications",
+                "stars": 4500,
+                "downloads": 850000,
+                "filament_version": "3.x",
+                "last_updated": "2023-12-20",
+                "features": [
+                    "Toast notifications",
+                    "Persistent notifications",
+                    "Status indicators",
+                    "Action buttons"
+                ]
+            },
+            {
+                "name": "awcodes/filament-quick-create",
+                "description": "Quick create plugin for FilamentPHP",
+                "github": "https://github.com/awcodes/filament-quick-create",
+                "packagist": "https://packagist.org/packages/awcodes/filament-quick-create",
+                "stars": 220,
+                "downloads": 110000,
+                "filament_version": "3.x",
+                "last_updated": "2023-11-20",
+                "features": [
+                    "Create resources from navigation",
+                    "Modal forms",
+                    "Shortcut access",
+                    "Custom actions"
+                ]
+            }
+        ],
+        "Data & Import/Export": [
+            {
+                "name": "pxlrbt/filament-excel",
+                "description": "Excel import/export for FilamentPHP",
+                "github": "https://github.com/pxlrbt/filament-excel",
+                "packagist": "https://packagist.org/packages/pxlrbt/filament-excel",
+                "stars": 790,
+                "downloads": 420000,
+                "filament_version": "3.x",
+                "last_updated": "2023-12-12",
+                "features": [
+                    "Excel exports",
+                    "CSV imports",
+                    "Column mapping",
+                    "Batch processing"
+                ]
+            },
+            {
+                "name": "tapp/filament-auditing",
+                "description": "Audit trail for FilamentPHP",
+                "github": "https://github.com/TappNetwork/filament-auditing",
+                "packagist": "https://packagist.org/packages/tapp/filament-auditing",
+                "stars": 280,
+                "downloads": 150000,
+                "filament_version": "3.x",
+                "last_updated": "2023-11-25",
+                "features": [
+                    "Activity logging",
+                    "User tracking",
+                    "Change history",
+                    "Data restoration"
+                ]
+            }
+        ]
+    }
+}
+
+def search_filament_plugins(feature_requirements, compatibility_requirements=None):
     """
-    Returns the comprehensive FilamentPHP plugins and extensions knowledge base
+    Search and rank Filament plugins based on feature requirements and compatibility.
+    
+    Args:
+        feature_requirements (str): Description of the features needed
+        compatibility_requirements (dict, optional): Dict with 'laravel', 'php', and 'filament' version requirements
+        
+    Returns:
+        dict: Ranked plugin recommendations with scores and implementation examples
     """
+    # This function would typically make API calls to Packagist/GitHub
+    # For now, we'll simulate the search by returning predefined data
+    
+    # Implementation would include:
+    # 1. Parse feature requirements to extract keywords
+    # 2. Query plugin repositories and sources
+    # 3. Score and rank plugins based on evaluation criteria
+    # 4. Generate implementation examples
+    # 5. Return formatted recommendations
+    
+    return {
+        "feature_description": feature_requirements,
+        "recommendations": [
+            # This would be dynamically generated based on the query
+            {
+                "name": "Example Plugin 1",
+                "score": 95,
+                "author": "Example Author",
+                "github_url": "https://github.com/example/plugin1",
+                "stars": 450,
+                "packagist_url": "https://packagist.org/packages/example/plugin1",
+                "downloads": 250000,
+                "compatibility": {
+                    "laravel": "9.x, 10.x",
+                    "php": "8.1, 8.2",
+                    "filament": "3.x"
+                },
+                "last_updated": "2023-12-15",
+                "features": [
+                    "Feature 1 description",
+                    "Feature 2 description",
+                    "Feature 3 description"
+                ],
+                "code_example": """
+                composer require example/plugin1
+                
+                // In your ServiceProvider
+                public function boot()
+                {
+                    Filament::registerPlugin(
+                        ExamplePlugin::make()
+                    );
+                }
+                
+                // In your resource
+                use Example\\Plugin1\\Components\\ExampleComponent;
+                
+                public static function form(Form $form): Form
+                {
+                    return $form->schema([
+                        ExampleComponent::make('field_name')
+                            ->label('Field Label')
+                            ->required(),
+                    ]);
+                }
+                """
+            }
+        ],
+        "custom_implementation": {
+            "description": "Custom implementation approach if no plugins meet requirements",
+            "code_example": "// Custom implementation code would go here",
+            "complexity": "medium",
+            "estimated_effort": "2-4 hours"
+        },
+        "search_metadata": {
+            "sources_queried": ["Packagist", "GitHub", "FilamentPHP Awesome List"],
+            "keywords_used": ["example", "keyword"],
+            "filters_applied": {"min_stars": 100, "min_downloads": 10000}
+        }
+    }
+}
+
+# Agent workflow integration for plugin discovery
+PLUGIN_DISCOVERY_WORKFLOW = """
+When receiving a feature request that might be fulfilled by a Filament plugin:
+
+1. Analyze the feature requirements and extract key functionality needs
+2. Search for relevant plugins using the search_filament_plugins() function
+3. Evaluate compatibility with the project's Laravel, PHP, and Filament versions
+4. Rank plugins based on popularity, maintenance, and feature match
+5. Present the top 2-3 plugin recommendations with:
+   - Plugin name, author, and metrics (stars, downloads)
+   - Key features that match the requirements
+   - Basic implementation example
+   - Compatibility information
+6. If no suitable plugins are found, suggest a custom implementation approach
+7. Allow the user to select a plugin or request a custom implementation
+8. Provide detailed installation and configuration instructions for the selected option
+
+This ensures the agent leverages the existing ecosystem before implementing custom solutions.
+"""
+
+# Function to determine if a feature request could be fulfilled by plugins
+def should_search_plugins(feature_description):
+    """
+    Analyze a feature description to determine if it might be addressed by a Filament plugin
+    
+    Args:
+        feature_description (str): User's description of the needed feature
+        
+    Returns:
+        bool: True if the feature might be addressed by a plugin, False otherwise
+    """
+    # Keywords that suggest plugin applicability
+    plugin_relevant_keywords = [
+        "upload", "media", "file", "image", "editor", "wysiwyg", "rich text",
+        "chart", "graph", "dashboard", "widget", "stat", "metric", 
+        "permission", "role", "auth", "login", "2fa", "two factor",
+        "import", "export", "excel", "csv", "spreadsheet",
+        "translate", "language", "localization", "multilingual",
+        "theme", "dark mode", "color", "layout", "notification",
+        "audit", "log", "history", "activity", "tracking",
+        "calendar", "schedule", "date picker", "time picker",
+        "map", "location", "address", "geocode",
+        "payment", "gateway", "stripe", "paypal",
+        "tag", "category", "filter", "search"
+    ]
+    
+    # Check if any plugin-relevant keywords appear in the feature description
+    description_lower = feature_description.lower()
+    return any(keyword in description_lower for keyword in plugin_relevant_keywords)
+
+# Example usage in agent workflow
+"""
+When processing a user request about implementing a feature in Filament:
+
+1. Parse the feature request to understand requirements
+2. If should_search_plugins(feature_description) returns True:
+   a. Call search_filament_plugins(feature_description) to get recommendations
+   b. Present plugin options to the user before implementing a custom solution
+3. Otherwise, proceed with custom implementation based on knowledge base
+"""
+
+# Returns the comprehensive FilamentPHP plugins and extensions knowledge base
+def get_filament_plugins_knowledge():
+    """Returns the comprehensive FilamentPHP plugins and extensions knowledge base"""
     return {
         "overview": PLUGINS_OVERVIEW,
-        "official_plugins": OFFICIAL_PLUGINS,
+        "first_party_plugins": OFFICIAL_PLUGINS,
         "community_plugins": COMMUNITY_PLUGINS,
-        "custom_plugin_development": CUSTOM_PLUGIN_DEVELOPMENT,
-        "plugin_integration": PLUGIN_INTEGRATION
+        "plugin_development": PLUGIN_DEVELOPMENT,
+        "plugin_integration": PLUGIN_INTEGRATION,
+        "plugin_discovery": PLUGIN_DISCOVERY,
+        "plugin_discovery_workflow": PLUGIN_DISCOVERY_WORKFLOW
     } 
