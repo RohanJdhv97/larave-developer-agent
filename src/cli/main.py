@@ -3,15 +3,20 @@ import asyncio
 import os
 import atexit
 import json
-from typing import Optional
+import time
+from typing import Optional, List, Dict, Any
 from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.prompt import Prompt
 from rich.table import Table
+from rich.live import Live
+from rich.spinner import Spinner
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
+from rich.status import Status
 from rich import print as rprint
 
-from src.agent.langchain_integration import test_laravel_chain, LaravelDeveloperAgent
+from src.agent.langchain_integration import test_laravel_chain, LaravelDeveloperAgent, create_anthropic_client
 from src.utils.config import config
 from src.agent.memory import LaravelAgentMemory
 
@@ -29,20 +34,33 @@ agent = None
 MEMORY_FILE = "agent_memory.json"
 PROJECT_CONTEXT_FILE = "project_context.json"
 
+# Define processing stages for loading animations
+PROCESSING_STAGES = [
+    "Analyzing your request...",
+    "Retrieving Laravel knowledge...",
+    "Applying SOLID principles...",
+    "Checking PSR-12 standards...",
+    "Considering PHP 8.2+ features...",
+    "Evaluating best practices...",
+    "Crafting a detailed response...",
+]
+
 def initialize_agent():
     """Initialize the agent with memory loaded from disk if available."""
     global agent
     if agent is None:
-        agent = LaravelDeveloperAgent()
-        
-        # Try to load saved memory if it exists
-        if os.path.exists(MEMORY_FILE):
-            try:
-                # Load memory directly instead of using load_state
-                agent.memory = LaravelAgentMemory.load(MEMORY_FILE)
-                console.print(f"[bold green]Loaded previous conversation history with {len(agent.memory.chat_history.messages)} messages[/bold green]")
-            except Exception as e:
-                console.print(f"[bold yellow]Could not load previous memory: {str(e)}[/bold yellow]")
+        with Status("[bold blue]Initializing Laravel Developer Agent...[/bold blue]", spinner="dots12") as status:
+            agent = LaravelDeveloperAgent()
+            
+            # Try to load saved memory if it exists
+            if os.path.exists(MEMORY_FILE):
+                try:
+                    # Load memory directly instead of using load_state
+                    status.update("[bold blue]Loading conversation history...[/bold blue]")
+                    agent.memory = LaravelAgentMemory.load(MEMORY_FILE)
+                    console.print(f"[bold green]Loaded previous conversation history with {len(agent.memory.chat_history.messages)} messages[/bold green]")
+                except Exception as e:
+                    console.print(f"[bold yellow]Could not load previous memory: {str(e)}[/bold yellow]")
 
 # Save memory when the program exits
 def save_memory_on_exit():
@@ -50,13 +68,32 @@ def save_memory_on_exit():
     global agent
     if agent is not None:
         try:
-            agent.save_state(memory_path=MEMORY_FILE, context_path=PROJECT_CONTEXT_FILE)
-            console.print(f"[bold green]Saved conversation memory to {MEMORY_FILE}[/bold green]")
+            with Status("[bold blue]Saving conversation memory...[/bold blue]", spinner="dots") as status:
+                agent.save_state(memory_path=MEMORY_FILE, context_path=PROJECT_CONTEXT_FILE)
+                console.print(f"[bold green]Saved conversation memory to {MEMORY_FILE}[/bold green]")
         except Exception as e:
             console.print(f"[bold red]Error saving memory: {str(e)}[/bold red]")
 
 # Register the exit handler
 atexit.register(save_memory_on_exit)
+
+def animated_processing(query_text: str) -> None:
+    """Display an animated processing indicator with stages."""
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(),
+        TextColumn("[bold]{task.fields[status]}"),
+        console=console,
+        transient=True
+    ) as progress:
+        task = progress.add_task("[bold blue]Processing your Laravel query...", total=len(PROCESSING_STAGES), status="")
+        
+        # Show different processing stages
+        for stage in PROCESSING_STAGES:
+            progress.update(task, advance=1, status=stage)
+            # Random delay between 0.5 and 1.5 seconds to simulate processing
+            time.sleep(0.5 + (len(query_text) % 10) / 10)
 
 @app.command()
 def query(
@@ -77,12 +114,17 @@ def query(
         console.print(f"Temperature: {config.TEMPERATURE}")
     
     try:
+        # Show animated processing indicator
+        animated_processing(query_text)
+        
         if simple:
-            # Use the simple chain for compatibility
-            response = test_laravel_chain(query_text)
+            with Status("[bold magenta]Generating response with simple chain...[/bold magenta]", spinner="aesthetic") as status:
+                # Use the simple chain for compatibility
+                response = test_laravel_chain(query_text)
         else:
-            # Use the simple chain for now
-            response = agent.query_simple(query_text)
+            with Status("[bold magenta]Generating comprehensive response...[/bold magenta]", spinner="point") as status:
+                # Use the simple chain for now
+                response = agent.query_simple(query_text)
         
         console.print(Panel(Markdown(response), title="Laravel Agent Response", border_style="green"))
     except Exception as e:
@@ -100,17 +142,29 @@ def interactive(
     initialize_agent()
         
     console.print(Panel.fit(
-        "[bold purple]Laravel Developer Agent[/bold purple]\n"
-        "Ask any questions related to Laravel, Filament, or PHP development.\n"
-        "Type 'exit' or 'quit' to end the session.\n"
-        "Type '!simple' to toggle simple mode.\n"
-        "Type '!help' to see all available commands.",
+        "[bold purple]Laravel Developer Agent[/bold purple]\n\n"
+        "Your AI assistant for Laravel, FilamentPHP, and PestPHP development.\n\n"
+        "[bold cyan]Features:[/bold cyan]\n"
+        "• PSR-12 compliant code generation\n"
+        "• PHP 8.2+ features and best practices\n"
+        "• SOLID principles implementation\n"
+        "• Laravel ecosystem expertise\n"
+        "• Database schema design\n\n"
+        "[bold yellow]Commands:[/bold yellow]\n"
+        "• Type your Laravel questions directly\n"
+        "• Type 'exit' or 'quit' to end the session\n"
+        "• Type '!help' to see all available commands",
         title="Welcome",
+        subtitle=f"Using {config.MODEL} | Temperature: {config.TEMPERATURE}",
         border_style="purple"
     ))
     
     # Keep track of whether to use simple mode
     use_simple_mode = no_workflow
+    
+    # Show initial mode
+    mode_name = "Simple Mode" if use_simple_mode else "Memory Mode"
+    console.print(f"\n[bold blue]Starting in {mode_name}[/bold blue] - Type '!simple' to toggle modes")
     
     while True:
         # Show the current mode
@@ -122,8 +176,9 @@ def interactive(
             # Save memory before exiting
             try:
                 # Save memory directly
-                agent.memory.save(MEMORY_FILE)
-                console.print(f"[bold green]Conversation saved to {MEMORY_FILE}[/bold green]")
+                with Status("[bold blue]Saving conversation memory...[/bold blue]", spinner="dots") as status:
+                    agent.memory.save(MEMORY_FILE)
+                    console.print(f"[bold green]Conversation saved to {MEMORY_FILE}[/bold green]")
             except Exception as e:
                 console.print(f"[bold red]Error saving conversation: {str(e)}[/bold red]")
                 
@@ -134,90 +189,101 @@ def interactive(
             console.print(f"[bold cyan]Switched to {'simple' if use_simple_mode else 'memory'} mode[/bold cyan]")
             continue
         elif user_input.lower() == "!context":
-            show_project_context()
+            with Status("[bold blue]Retrieving project context...[/bold blue]", spinner="moon") as status:
+                show_project_context()
             continue
         elif user_input.lower() == "!memory":
             # Display the memory contents from agent.memory.chat_history directly
-            try:
-                direct_history = agent.memory.chat_history.messages
-                if not direct_history:
-                    console.print(Panel("No conversation history found.", title="Memory Contents", border_style="yellow"))
-                else:
-                    # Create a table for the conversation
-                    table = Table(title=f"Conversation History ({len(direct_history)} messages)")
-                    table.add_column("Turn", style="dim")
-                    table.add_column("Role", style="cyan")
-                    table.add_column("Message", style="white")
-                    
-                    # Add conversation turns to the table
-                    for i, msg in enumerate(direct_history):
-                        # Determine the role based on message type
-                        msg_type = type(msg).__name__
+            with Status("[bold blue]Loading conversation history...[/bold blue]", spinner="clock") as status:
+                try:
+                    direct_history = agent.memory.chat_history.messages
+                    if not direct_history:
+                        console.print(Panel("No conversation history found.", title="Memory Contents", border_style="yellow"))
+                    else:
+                        # Create a table for the conversation
+                        table = Table(title=f"Conversation History ({len(direct_history)} messages)")
+                        table.add_column("Turn", style="dim")
+                        table.add_column("Role", style="cyan")
+                        table.add_column("Message", style="white")
                         
-                        if "Human" in msg_type:
-                            role = "[bold blue]User"
-                        elif "AI" in msg_type:
-                            role = "[bold green]Agent"
-                        else:
-                            role = f"[bold yellow]{msg_type}"
+                        # Add conversation turns to the table
+                        for i, msg in enumerate(direct_history):
+                            # Determine the role based on message type
+                            msg_type = type(msg).__name__
                             
-                        # Get the content
-                        content = msg.content if hasattr(msg, 'content') else str(msg)
+                            if "Human" in msg_type:
+                                role = "[bold blue]User"
+                            elif "AI" in msg_type:
+                                role = "[bold green]Agent"
+                            else:
+                                role = f"[bold yellow]{msg_type}"
+                                
+                            # Get the content
+                            content = msg.content if hasattr(msg, 'content') else str(msg)
+                            
+                            # Add to the table
+                            table.add_row(str(i+1), role, content)
                         
-                        # Add to the table
-                        table.add_row(str(i+1), role, content)
-                    
-                    console.print(table)
-            except Exception as e:
-                console.print(f"[bold red]Error displaying memory:[/bold red] {str(e)}")
+                        console.print(table)
+                except Exception as e:
+                    console.print(f"[bold red]Error displaying memory:[/bold red] {str(e)}")
             continue
         elif user_input.lower() == "!debug":
             try:
                 # Run the debug_memory function
                 console.print("[bold yellow]Running memory diagnostics...[/bold yellow]")
-                memory_vars = agent.get_memory_variables()
-                direct_history = agent.memory.chat_history.messages
-                
-                console.print(f"Memory variables keys: {list(memory_vars.keys())}")
-                console.print(f"Direct history length: {len(direct_history)}")
-                
-                # Show details of direct history
-                console.print("\n[bold]Direct Chat History[/bold]")
-                for i, msg in enumerate(direct_history):
-                    console.print(f"Message {i+1}: {type(msg).__name__} - {str(msg)[:100]}...")
+                with Status("[bold blue]Analyzing memory structure...[/bold blue]", spinner="pong") as status:
+                    memory_vars = agent.get_memory_variables()
+                    direct_history = agent.memory.chat_history.messages
+                    
+                    console.print(f"Memory variables keys: {list(memory_vars.keys())}")
+                    console.print(f"Direct history length: {len(direct_history)}")
+                    
+                    # Show details of direct history
+                    console.print("\n[bold]Direct Chat History[/bold]")
+                    for i, msg in enumerate(direct_history):
+                        console.print(f"Message {i+1}: {type(msg).__name__} - {str(msg)[:100]}...")
             except Exception as e:
                 console.print(f"[bold red]Error during debug:[/bold red] {str(e)}")
             continue
         elif user_input.lower() == "!save":
             try:
-                agent.memory.save(MEMORY_FILE)
-                console.print(f"[bold green]Agent memory saved to {MEMORY_FILE}[/bold green]")
+                with Status("[bold blue]Saving agent memory state...[/bold blue]", spinner="bouncingBar") as status:
+                    agent.memory.save(MEMORY_FILE)
+                    console.print(f"[bold green]Agent memory saved to {MEMORY_FILE}[/bold green]")
             except Exception as e:
                 console.print(f"[bold red]Error saving memory: {str(e)}[/bold red]")
             continue
         elif user_input.lower() == "!load":
             try:
-                agent.memory = LaravelAgentMemory.load(MEMORY_FILE)
-                console.print(f"[bold green]Agent memory loaded from {MEMORY_FILE} with {len(agent.memory.chat_history.messages)} messages[/bold green]")
+                with Status("[bold blue]Loading agent memory state...[/bold blue]", spinner="smiley") as status:
+                    agent.memory = LaravelAgentMemory.load(MEMORY_FILE)
+                    console.print(f"[bold green]Agent memory loaded from {MEMORY_FILE} with {len(agent.memory.chat_history.messages)} messages[/bold green]")
             except Exception as e:
                 console.print(f"[bold red]Error loading memory: {str(e)}[/bold red]")
             continue
         elif user_input.lower() == "!reset":
             if Prompt.ask("[bold yellow]Reset all memory? This cannot be undone. (y/n)[/bold yellow]").lower() == 'y':
                 # Create a fresh memory instance
-                agent.memory = LaravelAgentMemory()
-                console.print("[bold red]Memory reset complete. All conversation history cleared.[/bold red]")
+                with Status("[bold red]Resetting agent memory...[/bold red]", spinner="runner") as status:
+                    agent.memory = LaravelAgentMemory()
+                    console.print("[bold red]Memory reset complete. All conversation history cleared.[/bold red]")
             continue
         elif user_input.lower() == "!help":
             show_help()
             continue
             
         try:
+            # Show animated processing indicator
+            animated_processing(user_input)
+            
             if use_simple_mode:
-                response = agent.query_simple(user_input)
+                with Status("[bold magenta]Generating response using simple mode...[/bold magenta]", spinner="aesthetic") as status:
+                    response = agent.query_simple(user_input)
             else:
-                # For now, always use the simple chain to avoid workflow issues
-                response = agent.query_simple(user_input)
+                with Status("[bold magenta]Generating response with memory integration...[/bold magenta]", spinner="point") as status:
+                    # For now, always use the simple chain to avoid workflow issues
+                    response = agent.query_simple(user_input)
                 
             console.print(Panel(Markdown(response), title="Laravel Agent Response", border_style="green"))
         except Exception as e:
@@ -304,21 +370,46 @@ def show_memory_history():
 
 def show_help():
     """Display help information for interactive mode."""
-    table = Table(title="Available Commands")
-    table.add_column("Command", style="cyan")
-    table.add_column("Description", style="green")
+    console.print(Panel.fit(
+        "[bold purple]Laravel Developer Agent - Interactive Mode Help[/bold purple]\n"
+        "This agent helps with Laravel, FilamentPHP, and PestPHP development tasks.",
+        title="About",
+        border_style="purple"
+    ))
     
-    table.add_row("exit, quit", "Exit the interactive session")
-    table.add_row("!simple", "Toggle between simple mode and memory mode")
-    table.add_row("!context", "Show the current project context")
-    table.add_row("!memory", "Show the conversation history")
-    table.add_row("!debug", "Display debug information about the memory")
-    table.add_row("!save", "Save the agent's state to disk")
-    table.add_row("!load", "Load the agent's state from disk") 
-    table.add_row("!reset", "Reset all memory and start fresh")
-    table.add_row("!help", "Show this help message")
+    table = Table(title="Available Commands", border_style="blue")
+    table.add_column("Command", style="cyan", justify="left")
+    table.add_column("Description", style="white")
+    table.add_column("Example", style="green", justify="left")
+    
+    commands = [
+        ("exit, quit", "Exit the interactive session and save conversation history", "exit"),
+        ("!simple", "Toggle between simple mode (faster) and memory mode (more context-aware)", "!simple"),
+        ("!context", "Display the current project context and configuration", "!context"),
+        ("!memory", "Show the full conversation history stored in memory", "!memory"),
+        ("!debug", "Display technical debug information about the memory system", "!debug"),
+        ("!save", "Manually save the agent's memory and context to disk", "!save"),
+        ("!load", "Load the agent's previously saved state from disk", "!load"),
+        ("!reset", "Reset all memory and start a fresh conversation", "!reset"),
+        ("!help", "Show this help message with available commands", "!help")
+    ]
+    
+    for cmd, desc, example in commands:
+        table.add_row(f"[bold]{cmd}[/bold]", desc, example)
     
     console.print(table)
+    
+    # Add a usage guide panel
+    console.print(Panel(
+        "To ask a question: Simply type your Laravel query and press Enter\n\n"
+        "[bold]Example queries:[/bold]\n"
+        "- How do I create a migration for a users table?\n"
+        "- Generate a Filament resource for a Product model\n"
+        "- Write a Pest test for user authentication\n"
+        "- Explain Laravel's service container",
+        title="Usage Guide",
+        border_style="green"
+    ))
 
 @app.command()
 def version():
@@ -434,88 +525,68 @@ def test_memory():
 @app.command()
 def diagnose():
     """
-    Run a diagnostic check on the memory system.
-    
-    This command:
-    1. Checks the memory file existence and format
-    2. Attempts to load memory
-    3. Checks the agent's memory state
-    4. Verifies the save process
+    Run diagnostics checks on the Laravel Developer Agent configuration.
     """
-    console.print("[bold cyan]Running memory system diagnostics...[/bold cyan]")
+    console.print(Panel.fit("[bold]Laravel Developer Agent Diagnostics[/bold]", border_style="blue"))
     
-    # Check memory file
-    console.print("\n[bold]1. Checking memory file[/bold]")
-    if os.path.exists(MEMORY_FILE):
-        try:
-            with open(MEMORY_FILE, "r") as f:
-                file_contents = f.read()
-                console.print(f"Memory file exists ({len(file_contents)} bytes)")
-                
-                memory_data = json.loads(file_contents)
-                console.print(f"Memory file contains keys: {list(memory_data.keys())}")
-                
-                chat_history = memory_data.get("chat_history", [])
-                console.print(f"Found {len(chat_history)} messages in file")
-                
-                for i, msg in enumerate(chat_history):
-                    console.print(f"Message {i+1}: Type={msg.get('type')}, Content={msg.get('content')[:30]}...")
-        except Exception as e:
-            console.print(f"[bold red]Error reading memory file:[/bold red] {str(e)}")
-    else:
-        console.print("Memory file does not exist")
-    
-    # Initialize agent
-    console.print("\n[bold]2. Initializing agent and loading memory[/bold]")
-    global agent
-    agent = LaravelDeveloperAgent()
-    
-    # Load memory manually
-    console.print("\n[bold]3. Loading memory directly[/bold]")
-    try:
-        # Call the load function directly
-        agent.memory = LaravelAgentMemory.load(MEMORY_FILE)
-        console.print("[bold green]Memory loaded successfully[/bold green]")
-    except Exception as e:
-        console.print(f"[bold red]Error loading memory:[/bold red] {str(e)}")
-    
-    # Check memory state
-    console.print("\n[bold]4. Checking memory state[/bold]")
-    try:
-        direct_history = agent.memory.chat_history.messages
-        console.print(f"Agent has {len(direct_history)} messages in memory")
+    # Check environment variables
+    with Status("[bold cyan]Checking environment variables...[/bold cyan]", spinner="dots") as status:
+        env_checks = {
+            "ANTHROPIC_API_KEY": config.ANTHROPIC_API_KEY is not None,
+            "MODEL": config.MODEL is not None,
+            "TEMPERATURE": config.TEMPERATURE is not None,
+            "MAX_TOKENS": config.MAX_TOKENS is not None
+        }
         
-        memory_vars = agent.get_memory_variables()
-        console.print(f"Memory variables: {list(memory_vars.keys())}")
+        # Create a table for environment checks
+        table = Table(title="Environment Configuration")
+        table.add_column("Variable", style="cyan")
+        table.add_column("Status", style="green")
+        table.add_column("Value", style="white")
         
-        chat_history = memory_vars.get('chat_history', [])
-        console.print(f"Memory variables has {len(chat_history)} messages")
-    except Exception as e:
-        console.print(f"[bold red]Error checking memory state:[/bold red] {str(e)}")
+        for var, exists in env_checks.items():
+            status = "[bold green]✓" if exists else "[bold red]✗"
+            value = getattr(config, var) if exists and var != "ANTHROPIC_API_KEY" else "***" if var == "ANTHROPIC_API_KEY" and exists else "Not set"
+            table.add_row(var, status, str(value))
+        
+        console.print(table)
     
-    # Add a test message
-    console.print("\n[bold]5. Adding and saving a test message[/bold]")
-    try:
-        # Add a test message
-        agent.memory.add_user_message("This is a test message from diagnostics")
+    # Check files
+    with Status("[bold cyan]Checking required files...[/bold cyan]", spinner="line") as status:
+        file_checks = {
+            "Memory File": {"path": MEMORY_FILE, "exists": os.path.exists(MEMORY_FILE), "required": False},
+            "Project Context": {"path": PROJECT_CONTEXT_FILE, "exists": os.path.exists(PROJECT_CONTEXT_FILE), "required": False}
+        }
         
-        # Check memory state again
-        direct_history = agent.memory.chat_history.messages
-        console.print(f"Agent now has {len(direct_history)} messages in memory")
+        # Create a table for file checks
+        table = Table(title="File System Checks")
+        table.add_column("File", style="cyan")
+        table.add_column("Status", style="green")
+        table.add_column("Path", style="white")
         
-        # Save memory
-        agent.save_state(memory_path=MEMORY_FILE, context_path=PROJECT_CONTEXT_FILE)
-        console.print("[bold green]Memory saved successfully[/bold green]")
+        for file, info in file_checks.items():
+            status = "[bold green]✓" if info["exists"] else "[bold yellow]○" if not info["required"] else "[bold red]✗"
+            table.add_row(file, status, info["path"])
         
-        # Verify save by reading file again
-        with open(MEMORY_FILE, "r") as f:
-            memory_data = json.load(f)
-            chat_history = memory_data.get("chat_history", [])
-            console.print(f"Memory file now has {len(chat_history)} messages")
-    except Exception as e:
-        console.print(f"[bold red]Error in add/save test:[/bold red] {str(e)}")
+        console.print(table)
     
-    console.print("\n[bold cyan]Memory diagnostics complete![/bold cyan]")
+    # Test API connection
+    with Status("[bold cyan]Testing Anthropic API connection...[/bold cyan]", spinner="growHorizontal") as status:
+        if not config.ANTHROPIC_API_KEY:
+            console.print("[bold red]Cannot test API connection: ANTHROPIC_API_KEY not set[/bold red]")
+        else:
+            try:
+                # Create a very simple test prompt
+                model = create_anthropic_client()
+                test_result = "Successfully connected to Anthropic API"
+                status.update("[bold green]API connection successful![/bold green]")
+            except Exception as e:
+                test_result = f"Failed to connect to Anthropic API: {str(e)}"
+                status.update("[bold red]API connection failed![/bold red]")
+        
+        console.print(f"\n[bold]API Connection Test:[/bold] {test_result}")
+    
+    console.print("\n[bold green]Diagnostics complete![/bold green]")
 
 @app.callback()
 def validate_config():

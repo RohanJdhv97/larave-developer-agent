@@ -44,6 +44,11 @@ from src.knowledge_base.filament.plugins_and_extensions import (
     search_filament_plugins,
     should_search_plugins
 )
+from src.agent.expertise.planning import (
+    RequirementAnalysis,
+    DatabasePlanning,
+    ImplementationStrategyPlanner
+)
 
 # Define the workflow state
 class LaravelAgentState(BaseModel):
@@ -72,6 +77,11 @@ class LaravelAgentState(BaseModel):
     
     # Memory
     memory_snapshot: Dict[str, Any] = Field(default_factory=dict, description="Snapshot of the agent's memory")
+    
+    # Planning and Analysis (new fields)
+    requirement_analysis: Dict[str, Any] = Field(default_factory=dict, description="Results of requirement analysis")
+    database_schema: Dict[str, Any] = Field(default_factory=dict, description="Database schema design")
+    implementation_strategy: Dict[str, Any] = Field(default_factory=dict, description="Implementation strategy")
 
 def create_workflow(memory: LaravelAgentMemory, knowledge_base: LaravelKnowledgeBase) -> Any:
     """
@@ -198,95 +208,228 @@ def create_workflow(memory: LaravelAgentMemory, knowledge_base: LaravelKnowledge
                 "response": f"Sorry, I couldn't generate code. Error: {str(e)}"
             }
     
-    # Step 4: Formulate response
-    def formulate_response(state: Dict[str, Any]) -> Dict[str, Any]:
+    # New Step: Analyze Requirements (for planning queries)
+    def analyze_requirements(state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Formulate the final response to the user.
+        Analyze requirements for planning and database design queries.
         """
         try:
             query = state["query"]
-            knowledge = state.get("retrieved_knowledge", [])
-            code_snippets = state.get("code_snippets", [])
+            query_type = state.get("query_type", "")
             
-            # If we already have an error response, use that
-            if state.get("response", "").startswith("Sorry"):
-                return state
-            
-            # Simple implementation for now - in the future, this would use the LLM
-            if "migration" in query.lower() and "laravel" in query.lower():
-                response = "To create a migration for a new table in Laravel, you can use the Artisan command line tool:\n\n"
-                response += "```bash\nphp artisan make:migration create_tablename_table\n```\n\n"
-                response += "This will generate a new migration file in the `database/migrations` directory.\n\n"
-                response += "Here's an example of what the migration might look like:\n\n"
-                response += "```php\n<?php\n\nuse Illuminate\\Database\\Migrations\\Migration;\n"
-                response += "use Illuminate\\Database\\Schema\\Blueprint;\nuse Illuminate\\Support\\Facades\\Schema;\n\n"
-                response += "return new class extends Migration\n{\n"
-                response += "    public function up()\n    {\n"
-                response += "        Schema::create('tablename', function (Blueprint $table) {\n"
-                response += "            $table->id();\n"
-                response += "            $table->string('name');\n"
-                response += "            $table->timestamps();\n"
-                response += "        });\n    }\n\n"
-                response += "    public function down()\n    {\n"
-                response += "        Schema::dropIfExists('tablename');\n    }\n};\n```\n\n"
-                response += "The `up()` method is used to add new tables, columns, or indexes to your database, "
-                response += "while the `down()` method should reverse the operations performed by the `up()` method."
+            # Only perform requirements analysis for planning-related queries
+            if "requirement" in query.lower() or "planning" in query.lower() or "database design" in query.lower():
+                # Create an instance of the RequirementAnalysis class
+                analyzer = RequirementAnalysis()
                 
-                # Update the state with the final response
+                # Analyze the requirements
+                analysis_result = analyzer.analyze_requirements(query)
+                
+                # Update the state with analysis results
                 return {
                     **state,
-                    "response": response
+                    "requirement_analysis": analysis_result.dict()
                 }
             else:
-                # Generic response for other types of queries
-                return {
-                    **state,
-                    "response": "I don't have a specific answer for that query yet. Could you provide more details or ask about another Laravel topic?"
-                }
+                # Skip requirements analysis for non-planning queries
+                return state
         except Exception as e:
             # Return state with error message
             return {
                 **state,
-                "response": f"Sorry, I couldn't formulate a response. Error: {str(e)}"
+                "response": f"Sorry, I couldn't analyze the requirements. Error: {str(e)}"
             }
     
-    # Create a basic sequential workflow
-    # We'll use try/except to handle potential import errors with LangGraph
-    try:
-        # Create the workflow graph
-        workflow = StateGraph(LaravelAgentState)
+    # New Step: Design Database Schema (for database design queries)
+    def design_database_schema(state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Design database schema based on requirements analysis.
+        """
+        try:
+            query = state["query"]
+            requirement_analysis = state.get("requirement_analysis", {})
+            
+            # Only perform database design for database-related queries
+            if "database" in query.lower() or "schema" in query.lower() or "relationship" in query.lower():
+                # Check if we have requirement analysis results
+                if requirement_analysis:
+                    # Create an instance of the DatabasePlanning class
+                    db_planner = DatabasePlanning()
+                    
+                    # Plan the database schema
+                    db_schema = db_planner.plan_database_schema(requirement_analysis)
+                    
+                    # Update the state with database schema
+                    return {
+                        **state,
+                        "database_schema": db_schema.dict()
+                    }
+            
+            # Skip database design for non-database queries or if no requirement analysis
+            return state
+        except Exception as e:
+            # Return state with error message
+            return {
+                **state,
+                "response": f"Sorry, I couldn't design the database schema. Error: {str(e)}"
+            }
+    
+    # New Step: Generate Implementation Strategy (for implementation planning queries)
+    def generate_implementation_strategy(state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate implementation strategy based on requirements and database schema.
+        """
+        try:
+            query = state["query"]
+            requirement_analysis = state.get("requirement_analysis", {})
+            database_schema = state.get("database_schema", {})
+            
+            # Only generate implementation strategy for strategy-related queries
+            if "implementation" in query.lower() or "strategy" in query.lower() or "planning" in query.lower():
+                # Check if we have requirements analysis and database schema
+                if requirement_analysis and database_schema:
+                    # Create an instance of the ImplementationStrategyPlanner class
+                    strategy_planner = ImplementationStrategyPlanner()
+                    
+                    # Plan the implementation strategy
+                    implementation_strategy = strategy_planner.plan_implementation_strategy(
+                        requirement_analysis,
+                        database_schema
+                    )
+                    
+                    # Update the state with implementation strategy
+                    return {
+                        **state,
+                        "implementation_strategy": implementation_strategy.dict()
+                    }
+            
+            # Skip implementation strategy for non-strategy queries or if missing prerequisites
+            return state
+        except Exception as e:
+            # Return state with error message
+            return {
+                **state,
+                "response": f"Sorry, I couldn't generate the implementation strategy. Error: {str(e)}"
+            }
+    
+    # Step 4: Formulate response
+    def formulate_response(state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Formulate the final response based on all gathered information.
+        """
+        try:
+            query = state.get("query", "")
+            knowledge = state.get("retrieved_knowledge", [])
+            code_snippets = state.get("code_snippets", [])
+            requirement_analysis = state.get("requirement_analysis", {})
+            database_schema = state.get("database_schema", {})
+            implementation_strategy = state.get("implementation_strategy", {})
+            
+            # If we have planning results, include them in the response
+            if requirement_analysis or database_schema or implementation_strategy:
+                response_parts = []
+                
+                # Add requirement analysis to response if available
+                if requirement_analysis:
+                    analyzer = RequirementAnalysis()
+                    analysis_output = analyzer.generate_breakdown_output(
+                        RequirementAnalysis.model_validate(requirement_analysis)
+                    )
+                    response_parts.append("## Requirement Analysis\n" + analysis_output)
+                
+                # Add database schema to response if available
+                if database_schema:
+                    db_planner = DatabasePlanning()
+                    schema_output = db_planner.generate_schema_output(
+                        DatabasePlanning.DatabaseSchema.model_validate(database_schema)
+                    )
+                    response_parts.append("## Database Schema\n" + schema_output)
+                
+                # Add implementation strategy to response if available
+                if implementation_strategy:
+                    strategy_planner = ImplementationStrategyPlanner()
+                    strategy_output = strategy_planner.generate_strategy_output(
+                        ImplementationStrategyPlanner.ImplementationStrategy.model_validate(implementation_strategy)
+                    )
+                    response_parts.append("## Implementation Strategy\n" + strategy_output)
+                
+                # Combine all parts into a complete response
+                response = "\n\n".join(response_parts)
+            else:
+                # For non-planning queries, use a simplified response format
+                response = "Here's my response:\n\n"
+                
+                if knowledge:
+                    response += "Based on my knowledge:\n"
+                    for item in knowledge[:3]:  # Limit to top 3 items
+                        response += f"- {item.get('title', 'Information')}: {item.get('content', '')[:100]}...\n"
+                
+                if code_snippets:
+                    response += "\nHere's a code example:\n"
+                    response += code_snippets[0]
+            
+            # Update the state with the final response
+            return {
+                **state,
+                "response": response
+            }
+        except Exception as e:
+            # Return a simple error response
+            return {
+                **state,
+                "response": f"Sorry, I encountered an error while formulating my response: {str(e)}"
+            }
+    
+    # Create a simple linear workflow for now
+    # In a real implementation, this would be a more complex LangGraph with conditional branches
+    def simple_workflow(query: str) -> str:
+        """
+        Execute a simplified linear workflow to process the query.
         
-        # Add nodes
-        workflow.add_node("analyze_query", RunnableLambda(analyze_query))
-        workflow.add_node("retrieve_knowledge", RunnableLambda(retrieve_knowledge))
-        workflow.add_node("generate_code", RunnableLambda(generate_code))
-        workflow.add_node("formulate_response", RunnableLambda(formulate_response))
+        Args:
+            query: The user's query
+            
+        Returns:
+            The generated response
+        """
+        # Initialize state
+        state = {
+            "query": query,
+            "query_type": "",
+            "relevant_topics": [],
+            "retrieved_knowledge": [],
+            "code_snippets": [],
+            "response": "",
+            "memory_snapshot": memory.get_context(),  # Get current memory context
+            "requirement_analysis": {},
+            "database_schema": {},
+            "implementation_strategy": {}
+        }
         
-        # Add edges
-        workflow.add_edge("analyze_query", "retrieve_knowledge")
-        workflow.add_edge("retrieve_knowledge", "generate_code")
-        workflow.add_edge("generate_code", "formulate_response")
-        workflow.add_edge("formulate_response", END)
+        # Execute workflow steps
+        state = analyze_query(state)
+        state = retrieve_knowledge(state)
         
-        # Set entry point
-        workflow.set_entry_point("analyze_query")
-        
-        # Compile the workflow
-        return workflow.compile()
-    except Exception as e:
-        # If LangGraph fails, create a simplified workflow function
-        def simple_workflow(query: str) -> str:
-            """
-            A simplified workflow that doesn't use LangGraph.
-            """
-            state = {"query": query}
-            state = analyze_query(state)
-            state = retrieve_knowledge(state)
+        # Execute planning steps if needed based on query type or content
+        planning_keywords = ["requirement", "database", "schema", "planning", "implementation", "strategy"]
+        if any(keyword in query.lower() for keyword in planning_keywords):
+            state = analyze_requirements(state)
+            state = design_database_schema(state)
+            state = generate_implementation_strategy(state)
+        else:
+            # For non-planning queries, generate code if appropriate
             state = generate_code(state)
-            state = formulate_response(state)
-            return state.get("response", f"Sorry, I encountered an error: {str(e)}")
         
-        return simple_workflow
+        # Formulate final response
+        state = formulate_response(state)
+        
+        # Update memory with interaction
+        memory.add_interaction(query, state["response"])
+        
+        return state["response"]
+    
+    # Return the workflow (simplified for now)
+    return simple_workflow
 
 def run_agent(query: str, memory: LaravelAgentMemory, knowledge_base: LaravelKnowledgeBase) -> str:
     """
