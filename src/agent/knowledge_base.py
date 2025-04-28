@@ -407,31 +407,41 @@ public static function form(Form $form): Form
         )
 
 def load_knowledge_base():
-    """Helper function to load the knowledge base from file or create default."""
-    try:
-        # First try to load from project directory
-        kb_path = Path("knowledge_base.json")
-        
-        # If not found, try to load from module directory
-        if not kb_path.exists():
-            module_dir = Path(__file__).parent
-            kb_path = module_dir / "knowledge_base.json"
-        
-        # If still not found, create default
-        if not kb_path.exists():
-            kb = LaravelKnowledgeBase()
-            kb.initialize_default_knowledge()
-            
-            # Save to module directory
-            module_dir = Path(__file__).parent
-            kb_path = module_dir / "knowledge_base.json"
-            kb.save(str(kb_path))
-            return kb
-            
-        return LaravelKnowledgeBase.load(str(kb_path))
-    except Exception as e:
-        # If any error occurs, return a new knowledge base with default knowledge
-        print(f"Error loading knowledge base: {e}")
-        kb = LaravelKnowledgeBase()
-        kb.initialize_default_knowledge()
-        return kb 
+    """
+    Load the knowledge base from file or initialize with defaults.
+    
+    Returns:
+        LaravelKnowledgeBase: The loaded knowledge base instance
+    """
+    base_path = Path(__file__).parent
+    knowledge_base_file = base_path / "knowledge_base.json"
+    
+    if knowledge_base_file.exists():
+        return LaravelKnowledgeBase.load(str(knowledge_base_file))
+    else:
+        # Initialize and save to create the file
+        knowledge_base = LaravelKnowledgeBase()
+        knowledge_base.initialize_default_knowledge()
+        knowledge_base.save(str(knowledge_base_file))
+        return knowledge_base
+
+# Import knowledge base sources
+try:
+    from src.knowledge_base.integration.integration_patterns import IntegrationPatterns
+except ImportError:
+    IntegrationPatterns = None
+
+try:
+    from src.knowledge_base.filament.filament_patterns import FilamentPatterns
+except ImportError:
+    FilamentPatterns = None
+
+try:
+    from src.knowledge_base.testing.pest_patterns import LaravelPestPatterns
+except ImportError:
+    LaravelPestPatterns = None
+
+try:
+    from src.knowledge_base.testing.larecipe_patterns import LarecipeDocumentationPatterns
+except ImportError:
+    LarecipeDocumentationPatterns = None 
