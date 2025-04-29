@@ -45,20 +45,26 @@ PROCESSING_STAGES = [
     "Crafting a detailed response...",
 ]
 
-def initialize_agent():
-    """Initialize the agent with memory loaded from disk if available."""
+def initialize_agent(use_visual_memory: bool = True):
+    """
+    Initialize the agent with memory loaded from disk if available.
+    
+    Args:
+        use_visual_memory: Whether to use the visual memory system with Rich UI
+    """
     global agent
     if agent is None:
         with Status("[bold blue]Initializing Laravel Developer Agent...[/bold blue]", spinner="dots12") as status:
-            agent = LaravelDeveloperAgent()
+            # Initialize with the visual memory system
+            agent = LaravelDeveloperAgent(use_visual_memory=use_visual_memory)
             
             # Try to load saved memory if it exists
             if os.path.exists(MEMORY_FILE):
                 try:
-                    # Load memory directly instead of using load_state
+                    # Load memory directly
                     status.update("[bold blue]Loading conversation history...[/bold blue]")
-                    agent.memory = LaravelAgentMemory.load(MEMORY_FILE)
-                    console.print(f"[bold green]Loaded previous conversation history with {len(agent.memory.chat_history.messages)} messages[/bold green]")
+                    agent.memory = agent.memory.__class__.load(MEMORY_FILE)
+                    console.print(f"[bold green]Loaded previous conversation history[/bold green]")
                 except Exception as e:
                     console.print(f"[bold yellow]Could not load previous memory: {str(e)}[/bold yellow]")
 
@@ -99,14 +105,15 @@ def animated_processing(query_text: str) -> None:
 def query(
     query_text: str = typer.Argument(..., help="The Laravel development query to process"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
-    simple: bool = typer.Option(False, "--simple", "-s", help="Use simple mode without the full reasoning workflow")
+    simple: bool = typer.Option(False, "--simple", "-s", help="Use simple mode without the full reasoning workflow"),
+    no_visual: bool = typer.Option(False, "--no-visual", help="Disable visual memory UI")
 ):
     """
     Process a single Laravel development query and display the result.
     """
     # Initialize agent with memory
     global agent
-    initialize_agent()
+    initialize_agent(use_visual_memory=not no_visual)
         
     if verbose:
         console.print("[bold cyan]Processing query...[/bold cyan]")
@@ -132,14 +139,15 @@ def query(
 
 @app.command()
 def interactive(
-    no_workflow: bool = typer.Option(False, "--no-workflow", help="Disable the workflow mode and use simple chain only")
+    no_workflow: bool = typer.Option(False, "--no-workflow", help="Disable the workflow mode and use simple chain only"),
+    no_visual: bool = typer.Option(False, "--no-visual", help="Disable visual memory UI")
 ):
     """
     Start an interactive session with the Laravel Developer Agent.
     """
     # Initialize agent with memory
     global agent
-    initialize_agent()
+    initialize_agent(use_visual_memory=not no_visual)
         
     console.print(Panel.fit(
         "[bold purple]Laravel Developer Agent[/bold purple]\n\n"

@@ -5,6 +5,7 @@ from langchain_core.runnables import RunnablePassthrough
 
 from src.utils.config import config
 from src.agent.memory import LaravelAgentMemory
+from src.agent.memory_adapter import DualMemoryAdapter
 from src.agent.project_context import LaravelProjectContext
 from src.agent.knowledge_base import load_knowledge_base
 
@@ -99,9 +100,21 @@ class LaravelDeveloperAgent:
     managing memory, project context, and knowledge retrieval.
     """
     
-    def __init__(self):
-        """Initialize the Laravel Developer Agent."""
-        self.memory = LaravelAgentMemory()
+    def __init__(self, use_visual_memory: bool = True):
+        """
+        Initialize the Laravel Developer Agent.
+        
+        Args:
+            use_visual_memory: Whether to use the visual memory system with Rich UI
+        """
+        # Use either the visual dual memory system or the standard memory
+        if use_visual_memory:
+            self.memory = DualMemoryAdapter()
+            print("Using visual dual memory system with Rich UI")
+        else:
+            self.memory = LaravelAgentMemory()
+            print("Using standard memory system")
+            
         self.project_context = LaravelProjectContext()
         self.knowledge_base = load_knowledge_base()
     

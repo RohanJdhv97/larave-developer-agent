@@ -1,0 +1,40 @@
+{
+  "temporary_memory": [
+    {
+      "role": "user",
+      "content": "Hello, AI assistant!",
+      "type": "message",
+      "timestamp": "2025-04-28T20:01:47.540144",
+      "id": "c618d962-0092-4115-bf80-d08a65bedd7a"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! How can I help you today?",
+      "type": "message",
+      "timestamp": "2025-04-28T20:01:47.544078",
+      "id": "33f36ca4-9be9-4bce-97e6-200d8797dd67"
+    },
+    {
+      "role": "user",
+      "content": "Tell me about the dual memory system.",
+      "type": "message",
+      "timestamp": "2025-04-28T20:01:47.550677",
+      "id": "266c1c6d-a27d-4ccb-af29-f3ef794836b8"
+    },
+    {
+      "role": "assistant",
+      "content": "The dual memory system has temporary and permanent memory components.",
+      "type": "message",
+      "timestamp": "2025-04-28T20:01:47.553954",
+      "id": "c2b60628-36fb-4006-87ad-5827119db272"
+    }
+  ],
+  "permanent_memory": [],
+  "analytics": {
+    "session_start": "2025-04-28T20:01:47.530862",
+    "messages_count": 4,
+    "knowledge_entries_count": 0,
+    "memory_transitions": 0,
+    "searches_performed": 0
+  }
+}
